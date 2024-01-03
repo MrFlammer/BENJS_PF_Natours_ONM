@@ -144,14 +144,20 @@
   }
 })({"fSlqf":[function(require,module,exports) {
 /* eslint-disable */ var _login = require("./login");
+var _signup = require("./signup");
+var _review = require("./review");
 var _updateSettings = require("./updateSettings");
 var _stripe = require("./stripe");
 // DOM ELEMENTS
 const loginForm = document.querySelector(".form--login");
+const signupForm = document.querySelector(".form--signup");
+const header = document.querySelector(".section-header");
+const reviewForm = document.querySelector(".form--review");
 const logOutBtn = document.querySelector(".nav__el--logout");
 const userDataForm = document.querySelector(".form-user-data");
 const userPasswordForm = document.querySelector(".form-user-password");
 const bookBtn = document.getElementById("book-tour");
+const reviewPage = document.getElementById("review__page");
 // DELEGATION
 if (loginForm) loginForm.addEventListener("submit", (e)=>{
     e.preventDefault();
@@ -166,7 +172,6 @@ if (userDataForm) userDataForm.addEventListener("submit", (e)=>{
     form.append("name", document.getElementById("name").value);
     form.append("email", document.getElementById("email").value);
     form.append("photo", document.getElementById("photo").files[0]);
-    console.log(form);
     (0, _updateSettings.updateSettings)(form, "data");
 });
 if (userPasswordForm) userPasswordForm.addEventListener("submit", async (e)=>{
@@ -190,8 +195,55 @@ if (bookBtn) bookBtn.addEventListener("click", (e)=>{
     const { tourId } = e.target.dataset;
     (0, _stripe.bookTour)(tourId);
 });
+if (signupForm) signupForm.addEventListener("submit", (e)=>{
+    e.preventDefault();
+    const name = document.getElementById("name").value;
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const passwordConfirm = document.getElementById("password-confirm").value;
+    (0, _signup.signup)(name, email, password, passwordConfirm);
+});
+if (reviewForm) reviewForm.addEventListener("submit", (e)=>{
+    e.preventDefault();
+    const rating = document.getElementById("rating").value;
+    const review = document.getElementById("review").value;
+    const tourId = header.dataset.tourId;
+    (0, _review.submitReview)(rating, review, tourId);
+});
+if (reviewPage) {
+    const btnDelete = document.querySelectorAll(".btn-delete");
+    const btnUpdate = document.querySelectorAll(".btn-update");
+    const rating = document.querySelectorAll("#rating");
+    const review = document.querySelectorAll("#review");
+    console.log({
+        rating,
+        review
+    });
+    btnUpdate.forEach((btn, i)=>{
+        btn.addEventListener("click", (e)=>{
+            btn.textContent = "Save";
+            rating[i].disabled = false;
+            review[i].disabled = false;
+            btn.addEventListener("click", (e)=>{
+                const reviewId = btn.dataset.reviewId;
+                console.log(rating[i].value);
+                btn.disabled = true;
+                btn.textContent = "Saving...";
+                (0, _review.updateReview)(reviewId, rating[i].value, review[i].value);
+            });
+        });
+    });
+    btnDelete.forEach((btn, i)=>{
+        btn.addEventListener("click", (e)=>{
+            const reviewId = btn.dataset.reviewId;
+            btn.textContent = "Removing...";
+            btn.disabled = true;
+            (0, _review.deleteReview)(reviewId);
+        });
+    });
+}
 
-},{"./login":"aUJqG","./updateSettings":"j7xLx","./stripe":"boZ94"}],"aUJqG":[function(require,module,exports) {
+},{"./login":"aUJqG","./signup":"e4uFr","./review":"d3fDB","./updateSettings":"j7xLx","./stripe":"boZ94"}],"aUJqG":[function(require,module,exports) {
 /* eslint-disable */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "login", ()=>login);
@@ -201,7 +253,7 @@ const login = async (email, password)=>{
     try {
         const res = await axios({
             method: "POST",
-            url: "http://127.0.0.1:3000/api/v1/users/login",
+            url: "/api/v1/users/login",
             data: {
                 email,
                 password
@@ -222,10 +274,10 @@ const logout = async ()=>{
     try {
         const res = await axios({
             method: "GET",
-            url: "http://127.0.0.1:3000/api/v1/users/logout"
+            url: "/api/v1/users/logout"
         });
         res.data.status = "success";
-        location.reload(true);
+        location.assign("/login");
     } catch (err) {
         console.log(err.response);
         (0, _alerts.showAlert)("error", "Error logging out! Try again.");
@@ -278,50 +330,37 @@ exports.export = function(dest, destName, get) {
     });
 };
 
-},{}],"j7xLx":[function(require,module,exports) {
-/* eslint-disable */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+},{}],"e4uFr":[function(require,module,exports) {
+/*eslint-disable*/ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "updateSettings", ()=>updateSettings);
+parcelHelpers.export(exports, "signup", ()=>signup);
+var _axios = require("axios");
+var _axiosDefault = parcelHelpers.interopDefault(_axios);
 var _alerts = require("./alerts");
-const updateSettings = async (data, type)=>{
+const signup = async (name, email, password, passwordConfirm)=>{
     try {
-        const url = type === "password" ? "http://127.0.0.1:3000/api/v1/users/updateMyPassword" : "http://127.0.0.1:3000/api/v1/users/updateMe";
-        const res = await axios({
-            method: "PATCH",
-            url,
-            data
+        const res = await (0, _axiosDefault.default)({
+            method: "POST",
+            url: "/api/v1/users/signup",
+            data: {
+                name,
+                email,
+                password,
+                passwordConfirm
+            }
         });
-        if (res.data.status === "success") (0, _alerts.showAlert)("success", `${type.toUpperCase()} updated successfully!`);
+        if (res.data.status === "success") {
+            (0, _alerts.showAlert)("success", "Account created Successfully!");
+            window.setTimeout(()=>{
+                location.assign("/");
+            }, 3000);
+        }
     } catch (err) {
         (0, _alerts.showAlert)("error", err.response.data.message);
     }
 };
 
-},{"./alerts":"97oIL","@parcel/transformer-js/src/esmodule-helpers.js":"fofuL"}],"boZ94":[function(require,module,exports) {
-/* eslint-disable */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "bookTour", ()=>bookTour);
-var _axios = require("axios");
-var _axiosDefault = parcelHelpers.interopDefault(_axios);
-var _alerts = require("./alerts");
-var _stripeJs = require("@stripe/stripe-js");
-const bookTour = async (tourId)=>{
-    const stripe = await (0, _stripeJs.loadStripe)("pk_test_51OSja4EwmnYQB7P1uIpVOzvb42zBqJTL2HaVN2QK8Y0OtBIU5aV9WeVF6ubW7uDYGMYL5l12kyaaFv7Vg4Yu6miJ00ACMC9ZmA");
-    try {
-        // 1.- Get Checkout session
-        const response = await (0, _axiosDefault.default).get(`http://127.0.0.1:3000/api/v1/bookings/checkout-session/${tourId}`);
-        const session = response.data.session;
-        // 2.- Redirect to checkout form
-        await stripe.redirectToCheckout({
-            sessionId: session.id
-        });
-    } catch (err) {
-        console.log(err);
-        (0, _alerts.showAlert)("error");
-    }
-};
-
-},{"axios":"5vw73","./alerts":"97oIL","@stripe/stripe-js":"dYhEk","@parcel/transformer-js/src/esmodule-helpers.js":"fofuL"}],"5vw73":[function(require,module,exports) {
+},{"axios":"5vw73","./alerts":"97oIL","@parcel/transformer-js/src/esmodule-helpers.js":"fofuL"}],"5vw73":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "default", ()=>(0, _axiosJsDefault.default));
@@ -4683,118 +4722,114 @@ Object.entries(HttpStatusCode).forEach(([key, value])=>{
 });
 exports.default = HttpStatusCode;
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"fofuL"}],"dYhEk":[function(require,module,exports) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"fofuL"}],"d3fDB":[function(require,module,exports) {
+/*eslint-disable*/ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "loadStripe", ()=>loadStripe);
-var V3_URL = "https://js.stripe.com/v3";
-var V3_URL_REGEX = /^https:\/\/js\.stripe\.com\/v3\/?(\?.*)?$/;
-var EXISTING_SCRIPT_MESSAGE = "loadStripe.setLoadParameters was called but an existing Stripe.js script already exists in the document; existing script parameters will be used";
-var findScript = function findScript() {
-    var scripts = document.querySelectorAll('script[src^="'.concat(V3_URL, '"]'));
-    for(var i = 0; i < scripts.length; i++){
-        var script = scripts[i];
-        if (!V3_URL_REGEX.test(script.src)) continue;
-        return script;
-    }
-    return null;
-};
-var injectScript = function injectScript(params) {
-    var queryString = params && !params.advancedFraudSignals ? "?advancedFraudSignals=false" : "";
-    var script = document.createElement("script");
-    script.src = "".concat(V3_URL).concat(queryString);
-    var headOrBody = document.head || document.body;
-    if (!headOrBody) throw new Error("Expected document.body not to be null. Stripe.js requires a <body> element.");
-    headOrBody.appendChild(script);
-    return script;
-};
-var registerWrapper = function registerWrapper(stripe, startTime) {
-    if (!stripe || !stripe._registerWrapper) return;
-    stripe._registerWrapper({
-        name: "stripe-js",
-        version: "2.2.2",
-        startTime: startTime
-    });
-};
-var stripePromise = null;
-var onErrorListener = null;
-var onLoadListener = null;
-var onError = function onError(reject) {
-    return function() {
-        reject(new Error("Failed to load Stripe.js"));
-    };
-};
-var onLoad = function onLoad(resolve, reject) {
-    return function() {
-        if (window.Stripe) resolve(window.Stripe);
-        else reject(new Error("Stripe.js not available"));
-    };
-};
-var loadScript = function loadScript(params) {
-    // Ensure that we only attempt to load Stripe.js at most once
-    if (stripePromise !== null) return stripePromise;
-    stripePromise = new Promise(function(resolve, reject) {
-        if (typeof window === "undefined" || typeof document === "undefined") {
-            // Resolve to null when imported server side. This makes the module
-            // safe to import in an isomorphic code base.
-            resolve(null);
-            return;
-        }
-        if (window.Stripe && params) console.warn(EXISTING_SCRIPT_MESSAGE);
-        if (window.Stripe) {
-            resolve(window.Stripe);
-            return;
-        }
-        try {
-            var script = findScript();
-            if (script && params) console.warn(EXISTING_SCRIPT_MESSAGE);
-            else if (!script) script = injectScript(params);
-            else if (script && onLoadListener !== null && onErrorListener !== null) {
-                var _script$parentNode;
-                // remove event listeners
-                script.removeEventListener("load", onLoadListener);
-                script.removeEventListener("error", onErrorListener); // if script exists, but we are reloading due to an error,
-                // reload script to trigger 'load' event
-                (_script$parentNode = script.parentNode) === null || _script$parentNode === void 0 || _script$parentNode.removeChild(script);
-                script = injectScript(params);
+parcelHelpers.export(exports, "submitReview", ()=>submitReview);
+parcelHelpers.export(exports, "updateReview", ()=>updateReview);
+parcelHelpers.export(exports, "deleteReview", ()=>deleteReview);
+var _axios = require("axios");
+var _axiosDefault = parcelHelpers.interopDefault(_axios);
+var _alerts = require("./alerts");
+const submitReview = async (rating, review, tourId)=>{
+    try {
+        const res = await (0, _axiosDefault.default)({
+            method: "POST",
+            url: `/api/v1/tours/${tourId}/reviews`,
+            data: {
+                rating,
+                review
             }
-            onLoadListener = onLoad(resolve, reject);
-            onErrorListener = onError(reject);
-            script.addEventListener("load", onLoadListener);
-            script.addEventListener("error", onErrorListener);
-        } catch (error) {
-            reject(error);
-            return;
+        });
+        if (res.data.status === "success") {
+            (0, _alerts.showAlert)("success", "Review added successfully!\uD83C\uDF89");
+            window.setTimeout(()=>{
+                location.reload();
+            }, 2000);
         }
-    }); // Resets stripePromise on error
-    return stripePromise["catch"](function(error) {
-        stripePromise = null;
-        return Promise.reject(error);
-    });
+    } catch (err) {
+        if (err.response.data.message.includes("duplicate")) return (0, _alerts.showAlert)("error", "You have already added a review!\uD83D\uDE42");
+        (0, _alerts.showAlert)("error", err.response.data.message);
+    }
 };
-var initStripe = function initStripe(maybeStripe, args, startTime) {
-    if (maybeStripe === null) return null;
-    var stripe = maybeStripe.apply(undefined, args);
-    registerWrapper(stripe, startTime);
-    return stripe;
-}; // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-// own script injection.
-var stripePromise$1 = Promise.resolve().then(function() {
-    return loadScript(null);
-});
-var loadCalled = false;
-stripePromise$1["catch"](function(err) {
-    if (!loadCalled) console.warn(err);
-});
-var loadStripe = function loadStripe() {
-    for(var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++)args[_key] = arguments[_key];
-    loadCalled = true;
-    var startTime = Date.now();
-    return stripePromise$1.then(function(maybeStripe) {
-        return initStripe(maybeStripe, args, startTime);
-    });
+const updateReview = async (reviewId, rating, review)=>{
+    // return console.log(data)
+    try {
+        const res = await (0, _axiosDefault.default)({
+            method: "PATCH",
+            url: `/api/v1/reviews/${reviewId}`,
+            data: {
+                rating,
+                review
+            }
+        });
+        if (res.data.status === "success") {
+            (0, _alerts.showAlert)("success", "Review updated successfuly!", 2);
+            window.setTimeout(()=>{
+                location.reload();
+            }, 2000);
+        }
+    } catch (err) {
+        (0, _alerts.showAlert)("error", err.response.data.message);
+    }
+};
+const deleteReview = async (reviewId)=>{
+    try {
+        const res = await (0, _axiosDefault.default)({
+            method: "DELETE",
+            url: `/api/v1/reviews/${reviewId}`
+        });
+        if (!res.data) {
+            (0, _alerts.showAlert)("success", "Review deleted successfully!", 1);
+            window.setTimeout(()=>location.reload(), 1000);
+        }
+    } catch (err) {
+        (0, _alerts.showAlert)("error", err.response.data.message);
+    }
 };
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"fofuL"}]},["fSlqf"], "fSlqf", "parcelRequire11c7")
+},{"axios":"5vw73","./alerts":"97oIL","@parcel/transformer-js/src/esmodule-helpers.js":"fofuL"}],"j7xLx":[function(require,module,exports) {
+/* eslint-disable */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "updateSettings", ()=>updateSettings);
+var _alerts = require("./alerts");
+const updateSettings = async (data, type)=>{
+    try {
+        const url = type === "password" ? "/api/v1/users/updateMyPassword" : "/api/v1/users/updateMe";
+        const res = await axios({
+            method: "PATCH",
+            url,
+            data
+        });
+        if (res.data.status === "success") (0, _alerts.showAlert)("success", `${type.toUpperCase()} updated successfully!`);
+    } catch (err) {
+        (0, _alerts.showAlert)("error", err.response.data.message);
+    }
+};
+
+},{"./alerts":"97oIL","@parcel/transformer-js/src/esmodule-helpers.js":"fofuL"}],"boZ94":[function(require,module,exports) {
+/* eslint-disable */ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "bookTour", ()=>bookTour);
+var _axios = require("axios");
+var _axiosDefault = parcelHelpers.interopDefault(_axios);
+var _alerts = require("./alerts");
+const stripe = Stripe("pk_test_51OSja4EwmnYQB7P1uIpVOzvb42zBqJTL2HaVN2QK8Y0OtBIU5aV9WeVF6ubW7uDYGMYL5l12kyaaFv7Vg4Yu6miJ00ACMC9ZmA");
+const bookTour = async (tourId)=>{
+    try {
+        // 1.- Get Checkout session
+        const response = await (0, _axiosDefault.default).get(`/api/v1/bookings/checkout-session/${tourId}`);
+        const session = response.data.session;
+        // 2.- Redirect to checkout form
+        await stripe.redirectToCheckout({
+            sessionId: session.id
+        });
+    } catch (err) {
+        console.log(err);
+        (0, _alerts.showAlert)("error");
+    }
+};
+
+},{"axios":"5vw73","./alerts":"97oIL","@parcel/transformer-js/src/esmodule-helpers.js":"fofuL"}]},["fSlqf"], "fSlqf", "parcelRequire11c7")
 
 //# sourceMappingURL=index.js.map
