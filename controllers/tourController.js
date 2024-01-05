@@ -1,5 +1,5 @@
 const multer = require('multer');
-const sharp = require('sharp');
+//const sharp = require('sharp');
 const Tour = require('../models/tourModel');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
@@ -25,7 +25,8 @@ exports.uploadTourImages = upload.fields([
   { name: 'images', maxCount: 3 },
 ]);
 
-exports.resizeTourImages = catchAsync(async (req, res, next) => {
+// Removed resizedTourimages due to multiple engine errors
+/*exports.resizeTourImages = catchAsync(async (req, res, next) => {
   if (!req.files.imageCover || !req.files.images) return next();
 
   // 1.- Cover image proccessing
@@ -54,7 +55,7 @@ exports.resizeTourImages = catchAsync(async (req, res, next) => {
   );
 
   next();
-});
+});*/
 
 exports.aliasTopTours = (req, res, next) => {
   req.query.limit = '5';

@@ -1,5 +1,5 @@
 const multer = require('multer');
-const sharp = require('sharp');
+//const sharp = require('sharp');
 const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
@@ -29,7 +29,9 @@ const upload = multer({
   fileFilter: multerFilter,
 });
 
-exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
+// Removed resizedPhoto due to multiple engine errors
+
+/*exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
   if (!req.file) return next();
 
   req.file.filename = `user-${req.user.id}-${Date.now()}.jpeg`;
@@ -41,7 +43,7 @@ exports.resizeUserPhoto = catchAsync(async (req, res, next) => {
     .toFile(`public/img/users/${req.file.filename}`);
 
   next();
-});
+});*/
 
 exports.uploadUserPhoto = upload.single('photo');
 
